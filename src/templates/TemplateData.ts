@@ -53,7 +53,7 @@ export class TemplateData {
         this._refreshTask = this.refreshTemplates(globalState);
     }
 
-    public async getTemplates(): Promise<Template[]> {
+    public async getTemplates(language: string): Promise<Template[]> {
         if (this._templates === undefined) {
             await this._refreshTask;
             if (this._templates === undefined) {
@@ -61,16 +61,17 @@ export class TemplateData {
             }
         }
 
-        const jsTemplates: Template[] = this._templates.filter((t: Template) => t.language === TemplateLanguage.JavaScript);
+        // filters templates according to selected language: 'C#', 'JavaScript', 'F#', 'TypeScript', 'Bash', 'Php', 'Python', 'PowerShell'
+        const langTemplates: Template[] = this._templates.filter((t: Template) => t.language === language);
         // tslint:disable-next-line:no-backbone-get-set-outside-model
         switch (vscode.workspace.getConfiguration().get('azureFunctions.templateFilter')) {
             case 'All':
-                return jsTemplates;
+                return langTemplates;
             case 'Core':
-                return jsTemplates.filter((t: Template) => t.isCategory(TemplateCategory.Core));
+                return langTemplates.filter((t: Template) => t.isCategory(TemplateCategory.Core));
             case 'Verified':
             default:
-                return jsTemplates.filter((t: Template) => this._verifiedTemplates.find((vt: string) => vt === t.name));
+                return langTemplates.filter((t: Template) => this._verifiedTemplates.find((vt: string) => vt === t.name));
         }
     }
 

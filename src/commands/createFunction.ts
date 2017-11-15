@@ -14,7 +14,7 @@ import { LocalAppSettings } from '../LocalAppSettings';
 import { localize } from '../localize';
 import { ConfigSetting, ValueType } from '../templates/ConfigSetting';
 import { EnumValue } from '../templates/EnumValue';
-import { Template } from '../templates/Template';
+import { Template, TemplateLanguage } from '../templates/Template';
 import { TemplateData } from '../templates/TemplateData';
 import * as fsUtil from '../utils/fs';
 import * as workspaceUtil from '../utils/workspace';
@@ -103,8 +103,9 @@ export async function createFunction(
     await validateIsFunctionApp(outputChannel, functionAppPath, ui);
 
     const localAppSettings: LocalAppSettings = new LocalAppSettings(ui, azureAccount, functionAppPath);
-
-    const templatePicks: PickWithData<Template>[] = (await templateData.getTemplates()).map((t: Template) => new PickWithData<Template>(t, t.name));
+    const languagePlaceHolder: string = localize('azFunc.selectFuncLanguage', 'Select a language');
+    const templateLanguage: string = (await ui.showQuickPick(Object.keys(TemplateLanguage).map((key: string) => { return new Pick(TemplateLanguage[key]); }), languagePlaceHolder)).label;
+    const templatePicks: PickWithData<Template>[] = (await templateData.getTemplates(templateLanguage)).map((t: Template) => new PickWithData<Template>(t, t.name));
     const templatePlaceHolder: string = localize('azFunc.selectFuncTemplate', 'Select a function template');
     const template: Template = (await ui.showQuickPick<Template>(templatePicks, templatePlaceHolder)).data;
 
@@ -126,7 +127,17 @@ export async function createFunction(
 
     const functionPath: string = path.join(functionAppPath, name);
     await template.writeTemplateFiles(functionPath);
-
-    const newFileUri: vscode.Uri = vscode.Uri.file(path.join(functionPath, 'index.js'));
+    const newFileUri: vscode.Uri = buildFileUri(functionPath, templateLanguage);
     vscode.window.showTextDocument(await vscode.workspace.openTextDocument(newFileUri));
+}
+
+function buildFileUri(functionPath: string, language: string): vscode.Uri {
+    switch (language) {
+        case TemplateLanguage.JavaScript:
+            return vscode.Uri.file(path.join(functionPath, 'index.js'));
+        case TemplateLanguage.CSharp:
+            return vscode.Uri.file(path.join(functionPath, 'run.csx'));
+        default:
+            return vscode.Uri.file(path.join(functionPath, 'index.js'));
+    }
 }

@@ -31,7 +31,8 @@ interface ITemplateMetadata {
 
 export enum TemplateLanguage {
     JavaScript = 'JavaScript',
-    Java = 'Java'
+    Java = 'Java',
+    CSharp = 'C#'
 }
 
 export enum TemplateCategory {
