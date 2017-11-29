@@ -11,7 +11,7 @@ import { Config } from './Config';
 import { ConfigBinding } from './ConfigBinding';
 import { ConfigSetting } from './ConfigSetting';
 import { Resources } from './Resources';
-import { Template, TemplateCategory, TemplateLanguage } from './Template';
+import { Template, TemplateCategory } from './Template';
 
 /**
  * Main container for all template data retrieved from the Azure Functions Portal. See README.md for more info and example of the schema.
@@ -62,7 +62,7 @@ export class TemplateData {
         }
 
         // filters templates according to selected language: 'C#', 'JavaScript', 'F#', 'TypeScript', 'Bash', 'Php', 'Python', 'PowerShell'
-        const langTemplates: Template[] = this._templates.filter((t: Template) => t.language === language);
+        const langTemplates: Template[] = this._templates.filter((t: Template) => true === true);
         // tslint:disable-next-line:no-backbone-get-set-outside-model
         switch (vscode.workspace.getConfiguration().get('azureFunctions.templateFilter')) {
             case 'All':
@@ -71,7 +71,7 @@ export class TemplateData {
                 return langTemplates.filter((t: Template) => t.isCategory(TemplateCategory.Core));
             case 'Verified':
             default:
-                return langTemplates.filter((t: Template) => this._verifiedTemplates.find((vt: string) => vt === t.name));
+                return langTemplates;//.filter((t: Template) => this._verifiedTemplates.find((vt: string) => vt === t.name));
         }
     }
 
@@ -114,7 +114,7 @@ export class TemplateData {
     private async requestFunctionPortal<T>(subPath: string, param?: string): Promise<T> {
         const options: request.OptionsWithUri = {
             method: 'GET',
-            uri: `https://functions.azure.com/api/${subPath}?runtime=latest$&${param}`,
+            uri: `https://functions.azure.com/api/${subPath}?runtime=beta&${param}`,
             headers: {
                 'User-Agent': 'Mozilla/5.0' // Required otherwise we get Unauthorized
             }

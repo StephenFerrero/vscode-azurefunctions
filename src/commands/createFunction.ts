@@ -96,6 +96,7 @@ export async function createFunction(
     outputChannel: vscode.OutputChannel,
     azureAccount: AzureAccount,
     templateData: TemplateData,
+    templateLanguage: string,
     ui: IUserInterface = new VSCodeUI()): Promise<void> {
 
     const folderPlaceholder: string = localize('azFunc.selectFunctionAppFolderExisting', 'Select the folder containing your function app');
@@ -103,8 +104,6 @@ export async function createFunction(
     await validateIsFunctionApp(outputChannel, functionAppPath, ui);
 
     const localAppSettings: LocalAppSettings = new LocalAppSettings(ui, azureAccount, functionAppPath);
-    const languagePlaceHolder: string = localize('azFunc.selectFuncLanguage', 'Select a language');
-    const templateLanguage: string = (await ui.showQuickPick(Object.keys(TemplateLanguage).map((key: string): Pick => { return new Pick(TemplateLanguage[key]); }), languagePlaceHolder)).label;
     const templatePicks: PickWithData<Template>[] = (await templateData.getTemplates(templateLanguage)).map((t: Template) => new PickWithData<Template>(t, t.name));
     const templatePlaceHolder: string = localize('azFunc.selectFuncTemplate', 'Select a function template');
     const template: Template = (await ui.showQuickPick<Template>(templatePicks, templatePlaceHolder)).data;

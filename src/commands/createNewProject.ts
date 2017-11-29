@@ -83,11 +83,12 @@ const tasksJsonForJava: {} = {
     ]
 };
 
+const attachToFunc: string = localize('azFunc.attachToFunc', 'Attach to Azure Functions');
 const launchJsonForJavaScript: {} = {
     version: '0.2.0',
     configurations: [
         {
-            name: localize('azFunc.attachToFunc', 'Attach to Azure Functions'),
+            name: attachToFunc,
             type: 'node',
             request: 'attach',
             port: 5858,
@@ -101,11 +102,25 @@ const launchJsonForJava: {} = {
     version: '0.2.0',
     configurations: [
         {
-            name: localize('azFunc.attachToFunc', 'Attach to Azure Functions'),
+            name: attachToFunc,
             type: 'java',
             request: 'attach',
             hostName: 'localhost',
             port: 5005,
+            preLaunchTask: taskId
+        }
+    ]
+};
+
+const launchJsonForCSharp: {} = {
+    version: '0.2.0',
+    configurations: [
+        {
+            name: attachToFunc,
+            type: 'mono',
+            request: 'attach',
+            address: 'localhost',
+            port: 55555,
             preLaunchTask: taskId
         }
     ]
@@ -182,10 +197,7 @@ export async function createNewProject(outputChannel: OutputChannel, functionApp
         functionAppPath = await workspaceUtil.selectWorkspaceFolder(ui, localize('azFunc.selectFunctionAppFolderNew', 'Select the folder that will contain your function app'));
     }
 
-    const languages: Pick[] = [
-        new Pick(TemplateLanguage.JavaScript),
-        new Pick(TemplateLanguage.Java)
-    ];
+    const languages: Pick[] = Object.keys(TemplateLanguage).map((key: string): Pick => { return new Pick(TemplateLanguage[key]); });
     const language: string = (await ui.showQuickPick(languages, localize('azFunc.selectFuncTemplate', 'Select a language for your function project'))).label;
 
     let javaTargetPath: string = '';
@@ -252,6 +264,7 @@ export async function createNewProject(outputChannel: OutputChannel, functionApp
                 break;
             default:
                 await fsUtil.writeFormattedJson(tasksJsonPath, tasksJsonForJavaScript);
+                // this works for C# as well
                 break;
         }
     }
@@ -261,6 +274,9 @@ export async function createNewProject(outputChannel: OutputChannel, functionApp
         switch (language) {
             case TemplateLanguage.Java:
                 await fsUtil.writeFormattedJson(launchJsonPath, launchJsonForJava);
+                break;
+            case TemplateLanguage.CSharp:
+                await fsUtil.writeFormattedJson(launchJsonPath, launchJsonForCSharp);
                 break;
             default:
                 await fsUtil.writeFormattedJson(launchJsonPath, launchJsonForJavaScript);
