@@ -7,6 +7,7 @@ import { User } from 'azure-arm-website/lib/models';
 import * as EventEmitter from 'events';
 import { createServer, Server, Socket } from 'net';
 import * as fetch from 'node-fetch';
+import { OutputChannel } from 'vscode';
 import { SiteWrapper } from 'vscode-azureappservice';
 import * as websocket from 'websocket';
 
@@ -19,14 +20,16 @@ export class DebugProxy extends EventEmitter {
     private _port: number;
     private _publishProfile: User;
     private _keepAlive: boolean;
+    private _outputChannel: OutputChannel;
 
-    constructor(siteWrapper: SiteWrapper, port: number, publishProfile: User, accessToken: string) {
+    constructor(outputChannel: OutputChannel, siteWrapper: SiteWrapper, port: number, publishProfile: User, accessToken: string) {
         super();
         this._siteWrapper = siteWrapper;
         this._port = port;
         this._publishProfile = publishProfile;
         this._accessToken = accessToken;
         this._keepAlive = true;
+        this._outputChannel = outputChannel;
         this._server = createServer();
     }
 
@@ -39,24 +42,28 @@ export class DebugProxy extends EventEmitter {
 
             this._server.on('connection', (socket: Socket) => {
                 if (this._wsclient) {
-                    this.emit('error', new Error(`[Server] client rejected ${socket.remoteAddress}:${socket.remotePort}`));
+                    this._outputChannel.appendLine(`[Proxy Server] client rejected ${socket.remoteAddress}:${socket.remotePort}`);
+                    this.emit('error', new Error(`[Proxy Server] client rejected ${socket.remoteAddress}:${socket.remotePort}`));
                     socket.destroy();
                 } else {
-                    // connected
+                    this._outputChannel.appendLine(`[Proxy Server] client connected ${socket.remoteAddress}:${socket.remotePort}`);
                     socket.pause();
 
                     this._wsclient = new websocket.client();
 
                     this._wsclient.on('connect', (connection: websocket.connection) => {
+                        this._outputChannel.appendLine('[WebSocket] client connected');
                         this._wsconnection = connection;
 
                         connection.on('close', () => {
+                            this._outputChannel.appendLine('[WebSocket] client closed');
                             this.dispose();
                             socket.destroy();
                             this.emit('end');
                         });
 
                         connection.on('error', (err: Error) => {
+                            this._outputChannel.appendLine(`[WebSocket] ${err}`);
                             this.dispose();
                             socket.destroy();
                             this.emit('error', err);
@@ -69,6 +76,7 @@ export class DebugProxy extends EventEmitter {
                     });
 
                     this._wsclient.on('connectFailed', (err: Error) => {
+                        this._outputChannel.appendLine(`[WebSocket] ${err}`);
                         this.dispose();
                         socket.destroy();
                         this.emit('error', err);
@@ -90,11 +98,13 @@ export class DebugProxy extends EventEmitter {
                 });
 
                 socket.on('end', () => {
+                    this._outputChannel.appendLine(`[Proxy Server] client disconnected ${socket.remoteAddress}:${socket.remotePort}`);
                     this.dispose();
                     this.emit('end');
                 });
 
                 socket.on('error', (err: Error) => {
+                    this._outputChannel.appendLine(`[Proxy Server] ${err}`);
                     this.dispose();
                     socket.destroy();
                     this.emit('error', err);
@@ -102,6 +112,7 @@ export class DebugProxy extends EventEmitter {
             });
 
             this._server.on('listening', () => {
+                this._outputChannel.appendLine('[Proxy Server] start listening');
                 this.emit('start');
             });
 
@@ -137,7 +148,8 @@ export class DebugProxy extends EventEmitter {
             try {
                 await this.getFunctionState();
                 setTimeout(this.keepAlive, 60 * 1000 /* 60 seconds */);
-            } catch (ex) {
+            } catch (err) {
+                this._outputChannel.appendLine(`[Proxy Server] ${err}`);
                 setTimeout(this.keepAlive, 5 * 1000 /* 5 seconds */);
             }
         }
@@ -161,10 +173,14 @@ export class DebugProxy extends EventEmitter {
     // tslint:disable-next-line:no-any
     private async requestAsync(url: string, options: fetch.RequestInit): Promise<any> {
         const response: fetch.Response = await fetch.default(url, options);
-        try {
-            return JSON.parse(await response.clone().json());
-        } catch (err) {
-            return JSON.parse(await response.text());
+        if (response.ok) {
+            try {
+                return JSON.parse(await response.clone().json());
+            } catch (err) {
+                return JSON.parse(await response.text());
+            }
+        } else {
+            throw new Error(`Failed when requesting '${url}'`);
         }
     }
 }

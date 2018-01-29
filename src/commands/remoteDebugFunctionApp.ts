@@ -17,7 +17,7 @@ import { localize } from '../localize';
 import { FunctionAppTreeItem } from '../tree/FunctionAppTreeItem';
 import { nodeUtils } from '../utils/nodeUtils';
 
-export async function remoteDebugFunctionApp(tree: AzureTreeDataProvider, node?: IAzureNode<FunctionAppTreeItem>): Promise<void> {
+export async function remoteDebugFunctionApp(outputChannel: vscode.OutputChannel, tree: AzureTreeDataProvider, node?: IAzureNode<FunctionAppTreeItem>): Promise<void> {
     const confirmMsg: string = localize('azFunc.confirmRemoteDebug', 'This is an experimental feature and only support Java Function now. Would you like to continue?');
     const result: vscode.MessageItem | undefined = await vscode.window.showWarningMessage(confirmMsg, DialogResponses.yes, DialogResponses.cancel);
     if (result === DialogResponses.cancel) {
@@ -32,7 +32,7 @@ export async function remoteDebugFunctionApp(tree: AzureTreeDataProvider, node?:
     const portNumber: number = await portfinder.getPortPromise();
     const publishProfile: User = await siteWrapper.getWebAppPublishCredential(client);
     const accessToken: string = await acquireToken(node.credentials);
-    const debugProxy: DebugProxy = new DebugProxy(siteWrapper, portNumber, publishProfile, accessToken);
+    const debugProxy: DebugProxy = new DebugProxy(outputChannel, siteWrapper, portNumber, publishProfile, accessToken);
 
     await vscode.window.withProgress({ location: vscode.ProgressLocation.Window }, async (p: vscode.Progress<{}>) => {
         return new Promise(async (resolve: () => void, reject: (e: Error) => void): Promise<void> => {

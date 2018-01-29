@@ -83,7 +83,7 @@ export function activate(context: vscode.ExtensionContext): void {
         actionHandler.registerCommand('azureFunctions.appSettings.delete', async (node: IAzureNode<AppSettingTreeItem>) => await deleteNode(tree, AppSettingTreeItem.contextValue, node));
         actionHandler.registerCommand('azureFunctions.installDotnetTemplates', async () => await dotnetUtils.installDotnetTemplates(outputChannel));
         actionHandler.registerCommand('azureFunctions.uninstallDotnetTemplates', async () => await dotnetUtils.uninstallDotnetTemplates(outputChannel));
-        actionHandler.registerCommand('azureFunctions.remoteDebugFunctionApp', async (node?: IAzureNode<FunctionAppTreeItem>) => await remoteDebugFunctionApp(tree, node));
+        actionHandler.registerCommand('azureFunctions.remoteDebugFunctionApp', async (node?: IAzureNode<FunctionAppTreeItem>) => await remoteDebugFunctionApp(outputChannel, tree, node));
     }
 }
 
