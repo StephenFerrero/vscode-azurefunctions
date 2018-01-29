@@ -5,10 +5,8 @@
 
 import { User } from 'azure-arm-website/lib/models';
 import * as EventEmitter from 'events';
-import * as http from 'http';
-import * as https from 'https';
 import { createServer, Server, Socket } from 'net';
-import { URL } from 'url';
+import * as fetch from 'node-fetch';
 import { SiteWrapper } from 'vscode-azureappservice';
 import * as websocket from 'websocket';
 
@@ -134,12 +132,13 @@ export class DebugProxy extends EventEmitter {
     }
 
     //keep querying the function app state, otherwise the connection will lose.
-    private keepAlive(): void {
+    private async keepAlive(): Promise<void> {
         if (this._keepAlive) {
             try {
-                setTimeout(this.getFunctionState, 60 * 1000 /* 60 seconds */);
+                await this.getFunctionState();
+                setTimeout(this.keepAlive, 60 * 1000 /* 60 seconds */);
             } catch (ex) {
-                setTimeout(this.getFunctionState, 5 * 1000 /* 5 seconds */);
+                setTimeout(this.keepAlive, 5 * 1000 /* 5 seconds */);
             }
         }
     }
@@ -160,31 +159,12 @@ export class DebugProxy extends EventEmitter {
     }
 
     // tslint:disable-next-line:no-any
-    private async requestAsync(url: string | URL, options: http.RequestOptions): Promise<any> {
-        if (!(url instanceof URL)) {
-            url = new URL(url);
+    private async requestAsync(url: string, options: fetch.RequestInit): Promise<any> {
+        const response: fetch.Response = await fetch.default(url, options);
+        try {
+            return JSON.parse(await response.clone().json());
+        } catch (err) {
+            return JSON.parse(await response.text());
         }
-        options.host = url.host;
-        options.path = url.pathname + url.search;
-        if (url.port) {
-            options.port = url.port;
-        }
-        // tslint:disable-next-line:no-any
-        return await new Promise((resolve: (res: any) => void, reject: (err: Error) => void): void => {
-            https.get(options, (res: http.IncomingMessage) => {
-                if (res.statusCode !== 200) {
-                    return reject(new Error(`HTTP ${res.statusCode}`));
-                }
-                let data: string;
-                res.on('data', (chunk: string) => {
-                    data = data ? data + chunk : chunk;
-                });
-                res.on('end', () => {
-                    resolve(JSON.parse(data));
-                });
-            }).on('error', (err: Error) => {
-                reject(err);
-            });
-        });
     }
 }

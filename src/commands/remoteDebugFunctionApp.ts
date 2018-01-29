@@ -104,7 +104,7 @@ async function updateAppSettings(siteWrapper: SiteWrapper, client: WebSiteManage
 
 async function acquireToken(credentials: DeviceTokenCredentials): Promise<string> {
     // tslint:disable-next-line:no-any typedef
-    return await new Promise((resolve: (res: string) => void, reject: (err: any) => void) => {
+    return new Promise((resolve: (res: string) => void, reject: (err: any) => void) => {
         // tslint:disable-next-line:no-string-literal no-any
         credentials['context'].acquireToken(credentials['environment']['activeDirectoryResourceId'], credentials['username'], credentials['clientId'], (err: any, result: any) => {
             if (err) {
